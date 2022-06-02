@@ -1,6 +1,11 @@
+APScheduler==3.9.1
 asgiref==3.5.2
 Django==4.0.5
+django-apscheduler==0.6.2
 djangorestframework==3.13.1
 pytz==2022.1
+pytz-deprecation-shim==0.1.0.post0
+six==1.16.0
 sqlparse==0.4.2
 tzdata==2022.1
+tzlocal==4.2

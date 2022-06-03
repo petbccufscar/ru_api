@@ -20,6 +20,7 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
+      - DJANGO_SETTINGS_MODULE=ru_api.settings.development
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
     depends_on:
       db:

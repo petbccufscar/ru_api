@@ -10,13 +10,9 @@ from django_apscheduler.models import DjangoJobExecution
 from django_apscheduler import util
 
 from datetime import datetime
-from ru.models import RU
+from ru.tasks import run
 
 logger = logging.getLogger(__name__)
-
-
-def my_job():
-    pass
 
 
 # The `close_old_connections` decorator ensures that database connections, that have become
@@ -43,13 +39,13 @@ class Command(BaseCommand):
         scheduler.add_jobstore(DjangoJobStore(), "default")
 
         scheduler.add_job(
-            my_job,
-            trigger=CronTrigger(second="*/10"),  # Every 10 seconds
-            id="my_job",  # The `id` assigned to each job MUST be unique
+            run,
+            trigger=CronTrigger(hour="00", minute="00"),  # Every midnight
+            id="ru.tasks.run",  # The `id` assigned to each job MUST be unique
             max_instances=1,
             replace_existing=True,
         )
-        logger.info("Added job 'my_job'.")
+        logger.info("Added job 'ru.tasks.run'.")
 
         scheduler.add_job(
             delete_old_job_executions,

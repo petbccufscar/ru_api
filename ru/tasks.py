@@ -70,17 +70,21 @@ class AlbumHTMLParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         if tag == 'a':
-            url = [attr for attr in attrs if attr[0] == 'href'][0][1]
-            if re.match('^/RU.UFSCar/photos/.+', url):
-                self.urls.add(BASE_URL + url)
+            for attr in attrs:
+                if attr[0] == 'href':
+                    url = attr[1]
+                    if re.match('^/RU.UFSCar/photos/.+', url):
+                        self.urls.add(BASE_URL + url)
 
 
 class PhotoHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag == 'img':
-            src = [attr for attr in attrs if attr[0] == 'src'][0][1]
-            if re.match('^https://scontent\..*\.fbcdn\.net/', src):
-                self.src = src
+            for attr in attrs:
+                if attr[0] == 'src':
+                    src = attr[1]
+                    if re.match('^https://scontent\..*\.fbcdn\.net/', src):
+                        self.src = src
 
 
 class UnrecognizedImageError(Exception):

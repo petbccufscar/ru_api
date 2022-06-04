@@ -7,11 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = environ['DJANGO_SECRET_KEY']
 DEBUG = False
-
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-
-ALLOWED_HOSTS = ['ru_api.herokuapp.com']
+ALLOWED_HOSTS = ['ru-api.herokuapp.com']
 
 
 # Application definition

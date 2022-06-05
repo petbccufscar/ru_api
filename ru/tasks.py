@@ -1,61 +1,65 @@
-from threading import Thread
-from time import sleep
+from django.db import transaction
 from html.parser import HTMLParser
 from django.db.utils import IntegrityError
 from pyppeteer import launch
-from PIL import Image
+from PIL import Image, ImageMath
+from requests import get
+from pkg_resources import resource_stream
+from pytesseract import image_to_string
 
 from .models import RU
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
-import pytesseract
 import asyncio
-import string
 import re
 import io
+
+MASK = Image.open(resource_stream('ru', 'mask.png')).convert(mode='L')
+
+DATE_PATTERN = '(\d+)\s*/\s*(\d+)'
+
+MEALS = [RU.ALMOÇO, RU.JANTAR]
+MEAL_PATTERN = f'({"|".join(MEALS)})'
+
+CAMPUSES = [RU.SÃO_CARLOS, RU.ARARAS, RU.SOROCABA, RU.LAGOA_DO_SINO]
+CAMPUS_PATTERN = f'({"|".join(CAMPUSES)})'
 
 BASE_URL = 'https://www.facebook.com'
 
 # URL for the RU's timeline album.
 ALBUM_URL = BASE_URL + '/media/set/?set=a.160605075654161'
 
-# Set of first posts in the RU's timeline.
-# For checking if we've reached the bottom of the timeline accidentally.
-# Shouldn't be a problem once there are enough posts.
-FIRST_URLS = set([
-    'https://www.facebook.com/RU.UFSCar/photos/a.160605075654161/488231472891518',
-    'https://www.facebook.com/RU.UFSCar/photos/a.160605075654161/457563022625030',
-    'https://www.facebook.com/RU.UFSCar/photos/a.160605075654161/457562902625042',
-    'https://www.facebook.com/RU.UFSCar/photos/a.160605075654161/488231476224851',
-])
-
 # Size of the images we expect to be posted.
-IMAGE_SIZE = (1280, 720)
+IMAGE_SIZE = (960, 540)
+
+# Rectangle bounds for where we expect the campus name to be written.
+# Bounds are written as (left, upper, right, lower).
+CAMPUS_BOUNDS = (281, 10, 679, 70)
 
 # Rectangle bounds for where we expect the date to be written.
-DATE_BOUNDS = (393, 41, 893, 102)
-
-# Rectangle bounds for where we expect the meal to be written.
-MEAL_BOUNDS = (442, 106, 838, 163)
+DATE_BOUNDS = (281, 81, 679, 140)
 
 # Rectangle bounds for where we expect data to be written.
 BOUNDS = [
-    (440, 209, 1021, 260), # Main dish
-    (440, 293, 1021, 344), # Vegetarian
-    (440, 375, 1021, 426), # Garrison
-    (440, 459, 1021, 510), # Accompaniment
-    (440, 541, 1021, 592), # Salad
-    (440, 625, 1021, 676), # Dessert
+    (512, 141, 916, 201), # Main dish
+    (512, 207, 916, 266), # Vegetarian
+    (512, 272, 916, 332), # Garrison
+    (512, 338, 916, 397), # Accompaniment
+    (512, 403, 916, 462), # Salad
+    (512, 469, 916, 528), # Dessert
 ]
 
 # Dictionary for correcting Tesseract jank on a case-by-case basis.
 CORRECTIONS = {
-    'Fejão': 'Feijão',
     'Com': 'com',
     'Pts': 'PTS',
     'Ao': 'ao',
     'De': 'de',
+    'Do': 'do',
+    'Da': 'da',
     'Em': 'em',
+    'No': 'no',
+    'Na': 'na',
     'Ou': 'ou',
     'E': 'e',
     'Á': 'á',
@@ -69,65 +73,56 @@ class AlbumHTMLParser(HTMLParser):
         HTMLParser.__init__(self)
 
     def handle_starttag(self, tag, attrs):
-        if tag == 'a':
-            for attr in attrs:
-                if attr[0] == 'href':
-                    url = attr[1]
-                    if re.match('^/RU.UFSCar/photos/.+', url):
-                        self.urls.add(BASE_URL + url)
-
-
-class PhotoHTMLParser(HTMLParser):
-    def handle_starttag(self, tag, attrs):
         if tag == 'img':
             for attr in attrs:
                 if attr[0] == 'src':
-                    src = attr[1]
-                    if re.match('^https://scontent\..*\.fbcdn\.net/', src):
-                        self.src = src
+                    self.urls.add(attr[1])
 
 
 class UnrecognizedImageError(Exception):
     pass
 
 
-class Meal:
-    def __init__(self, image_bytes):
-        img = Image.open(io.BytesIO(image_bytes))
+def preprocess(img):
+    img = img.convert(mode='L')
+    img = Image.eval(img, lambda x: (13005 - 51 * x) // 19)
+    img = ImageMath.eval('a + b', a=img, b=MASK)
+    return img.convert(mode='RGB')
 
-        if img.size != IMAGE_SIZE:
+
+class Meal:
+    def __init__(self, img):
+        img = preprocess(Image.open(io.BytesIO(img)).resize(IMAGE_SIZE))
+
+        # Recognize the campus.
+        campus = image_to_string(img.crop(CAMPUS_BOUNDS), lang='por').lower()
+        print(f"campus is {campus}")
+        campus_match = re.search(CAMPUS_PATTERN, campus)
+        if campus_match == None:
             raise UnrecognizedImageError
 
         # Recognize the date.
-        date = pytesseract.image_to_string(img.crop(DATE_BOUNDS), lang='por')
-        match = re.match('(\d+)\s*/\s*(\d+)', date)
-
-        if match == None:
+        datestr = image_to_string(img.crop(DATE_BOUNDS), lang='por').lower()
+        print(datestr)
+        date_match = re.search(DATE_PATTERN, datestr)
+        meal_match = re.search(MEAL_PATTERN, datestr)
+        if date_match == None or meal_match == None:
             raise UnrecognizedImageError
 
         try:
-            day, month = match.groups()
-            self.day = int(day)
-            self.month = int(month)
+            self.campus = campus_match.group(1)
+            self.day = int(date_match.group(1))
+            self.month = int(date_match.group(2))
+            self.meal = meal_match.group(1)
         except ValueError as _:
-            raise UnrecognizedImageError
-
-        # Recognize the meal type.
-        meal = pytesseract.image_to_string(img.crop(MEAL_BOUNDS), lang='por')
-        meal = meal.strip().lower()
-        if meal in ['almoço', 'jantar']:
-            self.meal = meal
-        else:
             raise UnrecognizedImageError
 
         # Recognize meal data.
         strings = []
         for bound in BOUNDS:
-            istr = pytesseract.image_to_string(img.crop(bound), lang='por')
-            istr = istr.strip().lower()
-            space = lambda x: f'{x.group(1)} {x.group(2)}'
-            istr = re.sub('([^0-9 ])([0-9]+)', space, istr)
-            istr = re.sub('([0-9]+)([^0-9 ])', space, istr)
+            istr = image_to_string(img.crop(bound), lang='por').lower()
+            istr = re.sub('\s+', ' ', istr)
+            # Capitalize words and apply corrections.
             out = []
             for word in istr.split():
                 word = word.capitalize()
@@ -135,6 +130,8 @@ class Meal:
                     word = CORRECTIONS[word]
                 out.append(word)
             strings.append(' '.join(out))
+
+        print(strings)
 
         self.maindish = strings[0]
         self.vegetarian = strings[1]
@@ -144,19 +141,15 @@ class Meal:
         self.dessert = strings[5]
 
 
-async def download_image(browser, url):
-    page = await browser.newPage()
-    await page.setViewport({ 'width': 1280, 'height': 720 })
-    await page.goto(url, waitUntil='networkidle0')
-    parser = PhotoHTMLParser()
-    parser.feed(await page.content())
-    await page.goto(parser.src)
-    result = await page.screenshot()
-    await page.close()
-    return result
+async def download_image(url):
+    r = get(url)
+    lm = r.headers.get('last-modified')
+    last_modified = datetime.strptime(lm, '%a, %d %b %Y %H:%M:%S %Z')
+    last_modified = last_modified.replace(tzinfo=timezone.utc)
+    return (r.content, last_modified)
 
 
-async def browse(desired_dates, patience):
+async def browse(until):
     browser = await launch(
         executablePath='google-chrome-stable',
         args=['--no-sandbox'],
@@ -168,9 +161,9 @@ async def browse(desired_dates, patience):
     page = await browser.newPage()
     await page.goto(ALBUM_URL, waitUntil='networkidle0')
 
+    remaining_scroll_attempts = 8
+    remaining_image_attempts = 8
     viewed_urls = set()
-    viewed_dates = set()
-    attempts = 0
     output = []
 
     while True:
@@ -178,60 +171,52 @@ async def browse(desired_dates, patience):
         parser = AlbumHTMLParser()
         parser.feed(await page.content())
 
+        # No new URLs have appeared.
+        # Wait and try some more times.
+        if parser.urls.issubset(viewed_urls):
+            remaining_scroll_attempts -= 1
+            print(f"{remaining_scroll_attempts} attempts remaining.")
+            await page.waitFor(10_000)
+            if remaining_scroll_attempts == 0:
+                await browser.close()
+                return output
+        else:
+            remaining_scroll_attempts = 8
+
         # Scroll to the bottom.
         imgs = await page.JJ('img')
         await imgs[-1].hover()
-        await page.waitFor(500)
 
         for url in parser.urls - viewed_urls:
+            await page.waitFor(10_000)
             print(url)
+            img, last_modified = await download_image(url)
+            print(last_modified)
 
-            attempts = attempts + 1
-            if attempts > patience:
-                await browser.close()
-                return output
+            # Reached a post that is older than requested.
+            # Try skipping it, give up if more than 8 appear in a row.
+            if last_modified < until:
+                remaining_image_attempts -= 1
+                if remaining_image_attempts == 0:
+                    await browser.close()
+                    return output
+            else:
+                remaining_image_attempts = 8
 
             try:
-                meal = Meal(await download_image(browser, url))
-                date = (meal.month, meal.day, meal.meal)
-                if date in desired_dates:
-                    attempts = 0
-                    output.append(meal)
-                    viewed_dates.add(date)
-                    if viewed_dates == desired_dates:
-                        await browser.close()
-                        return output
+                output.append(Meal(img))
             except UnrecognizedImageError as _:
                 continue
 
         # Add parsed URLs to the viewed list.
         viewed_urls = viewed_urls.union(parser.urls)
 
-        # Heuristically check if we've reached the bottom of the timeline.
-        if not parser.urls.isdisjoint(FIRST_URLS):
-            await browser.close()
-            return output
 
-
-def run():
-    for obj in RU.objects.all():
-        age = obj.date - date.today()
-        if age.days > 7:
-            obj.delete()
-
-    date_dict = {}
-    dates = set()
-    for i in range(-7, 8):
-        date_ = date.today() + timedelta(days=i)
-        dates.add((date_.month, date_.day, 'almoço'))
-        date_dict[(date_.month, date_.day, 'almoço')] = date_
-        dates.add((date_.month, date_.day, 'jantar'))
-        date_dict[(date_.month, date_.day, 'jantar')] = date_
-
-    meals = asyncio.new_event_loop().run_until_complete(browse(dates, 3))
-
+@transaction.atomic
+def store_meals(meals):
+    # Store atomically so that we can catch posts more reliably.
     for meal in meals:
-        print(f"--- {meal.day}/{meal.month} {meal.meal} ---")
+        print(f"--- {meal.campus} ~ {meal.day}/{meal.month} ~ {meal.meal} ---")
         print("Prato Principal:", meal.maindish)
         print("Vegetariano:", meal.vegetarian)
         print("Guarnição:", meal.garrison)
@@ -239,9 +224,12 @@ def run():
         print("Salada:", meal.salad)
         print("Sobremesa:", meal.dessert)
 
+        # FIXME Doesn't work near Jan 1st.
+        year = datetime.now().year
         try:
             RU.objects.create(
-                date=date_dict[(meal.month, meal.day, meal.meal)],
+                date=datetime(year=year, month=meal.month, day=meal.day),
+                campus=meal.campus,
                 lunch=meal.meal,
                 mainMeal=meal.maindish,
                 mainMealVegetarian=meal.vegetarian,
@@ -252,3 +240,23 @@ def run():
             )
         except IntegrityError as _:
             continue
+
+
+def run():
+    # Prune objects older than a week, but keep at least 1.
+    count = RU.objects.count()
+    for obj in RU.objects.all():
+        age = obj.date - date.today()
+        if age.days > 7 and count > 1:
+            obj.delete()
+            count = count - 1
+
+    # Look for posts younger than the last time we checked. Or one week old if
+    # the DB is empty.
+    until = None
+    if count > 0:
+        until = RU.objects.latest('created_at').created_at
+    else:
+        until = datetime.now(tz=timezone.utc) - timedelta(weeks=1)
+
+    store_meals(asyncio.new_event_loop().run_until_complete(browse(until)))

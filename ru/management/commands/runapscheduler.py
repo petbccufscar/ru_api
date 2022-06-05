@@ -40,7 +40,7 @@ class Command(BaseCommand):
 
         scheduler.add_job(
             run,
-            trigger=CronTrigger(hour="00", minute="00"),  # Every midnight
+            trigger=CronTrigger(hour="00", minute="00"),  # Every 21pm (UTC-3)
             id="ru.tasks.run",  # The `id` assigned to each job MUST be unique
             max_instances=1,
             replace_existing=True,

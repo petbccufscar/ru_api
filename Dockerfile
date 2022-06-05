@@ -18,8 +18,10 @@ RUN useradd -m myuser
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
-USER myuser
 COPY . /opt/ru/
+RUN python3 /opt/ru/manage.py collectstatic --noinput
+
+USER myuser
 CMD python3 /opt/ru/manage.py migrate \
     && ( \
         python3 /opt/ru/manage.py runserver 0.0.0.0:$PORT \

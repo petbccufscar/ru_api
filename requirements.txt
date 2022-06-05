@@ -24,4 +24,5 @@ tzdata==2022.1
 tzlocal==4.2
 urllib3==1.26.9
 websockets==10.3
+whitenoise==6.1.0
 zipp==3.8.0

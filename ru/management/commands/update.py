@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-from django.db import transaction
 from html.parser import HTMLParser
 from django.db.utils import IntegrityError
 from pyppeteer import launch
@@ -204,7 +203,7 @@ async def browse(until):
             # Try skipping it, give up if more than 8 appear in a row.
             if last_modified < until:
                 remaining_image_attempts -= 1
-                print(f"IMG: {remaining_scroll_attempts} attempts remaining.")
+                print(f"IMG: {remaining_image_attempts} attempts remaining.")
                 if remaining_image_attempts == 0:
                     await browser.close()
                     return output
@@ -222,9 +221,7 @@ async def browse(until):
         viewed_urls = viewed_urls.union(parser.urls)
 
 
-@transaction.atomic
 def store_meals(meals):
-    # Store atomically so that we can catch posts more reliably.
     for meal in meals:
         # FIXME Doesn't work near Jan 1st.
         year = datetime.now().year

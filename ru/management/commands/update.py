@@ -157,16 +157,7 @@ async def download_image(url):
     return (r.content, last_modified)
 
 
-async def browse(until):
-    browser = await launch(
-        executablePath='google-chrome-stable',
-        args=['--no-sandbox'],
-        handleSIGINT=False,
-        handleSIGTERM=False,
-        handleSIGHUP=False,
-    )
-
-    page = await browser.newPage()
+async def browse(page, until):
     await page.goto(ALBUM_URL, waitUntil='networkidle0')
 
     remaining_scroll_attempts = 8
@@ -186,7 +177,6 @@ async def browse(until):
             print(f"SCROLL: {remaining_scroll_attempts} attempts remaining.")
             await page.waitFor(10_000)
             if remaining_scroll_attempts == 0:
-                await browser.close()
                 return output
         else:
             remaining_scroll_attempts = 8
@@ -205,7 +195,6 @@ async def browse(until):
                 remaining_image_attempts -= 1
                 print(f"IMG: {remaining_image_attempts} attempts remaining.")
                 if remaining_image_attempts == 0:
-                    await browser.close()
                     return output
             else:
                 remaining_image_attempts = 8
@@ -219,6 +208,21 @@ async def browse(until):
 
         # Add parsed URLs to the viewed list.
         viewed_urls = viewed_urls.union(parser.urls)
+
+
+async def get_meals(until):
+    browser = await launch(
+        executablePath='google-chrome-stable',
+        args=['--no-sandbox'],
+        handleSIGINT=False,
+        handleSIGTERM=False,
+        handleSIGHUP=False,
+    )
+
+    try:
+        return await browse(await browser.newPage(), until)
+    finally:
+        await browser.close()
 
 
 def store_meals(meals):
@@ -263,6 +267,7 @@ class Command(BaseCommand):
         else:
             until = datetime.now(tz=timezone.utc) - timedelta(weeks=1)
 
-        store_meals(asyncio.new_event_loop().run_until_complete(browse(until)))
+        meals = asyncio.new_event_loop().run_until_complete(get_meals(until))
+        store_meals(meals)
 
         print("Update success")

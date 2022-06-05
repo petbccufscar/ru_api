@@ -1,3 +1,4 @@
+from django.core.management.base import BaseCommand
 from django.db import transaction
 from html.parser import HTMLParser
 from django.db.utils import IntegrityError
@@ -7,7 +8,7 @@ from requests import get
 from pkg_resources import resource_stream
 from pytesseract import image_to_string
 
-from .models import RU
+from ru.models import RU
 from datetime import date, datetime, timedelta, timezone
 
 import asyncio
@@ -242,21 +243,24 @@ def store_meals(meals):
             continue
 
 
-def run():
-    # Prune objects older than a week, but keep at least 1.
-    count = RU.objects.count()
-    for obj in RU.objects.all():
-        age = obj.date - date.today()
-        if age.days > 7 and count > 1:
-            obj.delete()
-            count = count - 1
+class Command(BaseCommand):
+    help = "Updates the RU database."
 
-    # Look for posts younger than the last time we checked. Or one week old if
-    # the DB is empty.
-    until = None
-    if count > 0:
-        until = RU.objects.latest('created_at').created_at
-    else:
-        until = datetime.now(tz=timezone.utc) - timedelta(weeks=1)
+    def handle(self, *args, **options):
+        # Prune objects older than a week, but keep at least 1.
+        count = RU.objects.count()
+        for obj in RU.objects.all():
+            age = obj.date - date.today()
+            if age.days > 7 and count > 1:
+                obj.delete()
+                count = count - 1
 
-    store_meals(asyncio.new_event_loop().run_until_complete(browse(until)))
+        # Look for posts younger than the last time we checked. Or one week old
+        # if the DB is empty.
+        until = None
+        if count > 0:
+            until = RU.objects.latest('created_at').created_at
+        else:
+            until = datetime.now(tz=timezone.utc) - timedelta(weeks=1)
+
+        store_meals(asyncio.new_event_loop().run_until_complete(browse(until)))

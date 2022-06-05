@@ -23,7 +23,4 @@ RUN python3 /opt/ru/manage.py collectstatic --noinput
 
 USER myuser
 CMD python3 /opt/ru/manage.py migrate \
-    && ( \
-        python3 /opt/ru/manage.py runserver 0.0.0.0:$PORT \
-        & python3 /opt/ru/manage.py runapscheduler \
-    )
+    && python3 /opt/ru/manage.py runserver 0.0.0.0:$PORT

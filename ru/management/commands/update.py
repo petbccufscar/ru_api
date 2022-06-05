@@ -162,6 +162,7 @@ async def browse(page, until):
 
     remaining_scroll_attempts = 8
     remaining_image_attempts = 8
+    remaining_text_attempts = 8
     viewed_urls = set()
     output = []
 
@@ -203,8 +204,12 @@ async def browse(page, until):
                 meal = Meal(img)
                 meal.display()
                 output.append(meal)
+                remaining_text_attempts = 8
             except UnrecognizedImageError as _:
-                continue
+                remaining_text_attempts -= 1
+                print(f"TEXT: {remaining_text_attempts} attempts remaining.")
+                if remaining_text_attempts == 0:
+                    return output
 
         # Add parsed URLs to the viewed list.
         viewed_urls = viewed_urls.union(parser.urls)

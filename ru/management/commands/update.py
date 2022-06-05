@@ -54,7 +54,6 @@ BOUNDS = [
 CORRECTIONS = {
     'Com': 'com',
     'Pts': 'PTS',
-    'Ao': 'ao',
     'De': 'de',
     'Do': 'do',
     'Da': 'da',
@@ -62,9 +61,11 @@ CORRECTIONS = {
     'No': 'no',
     'Na': 'na',
     'Ou': 'ou',
-    'E': 'e',
-    'Á': 'á',
+    'A': 'a',
+    'Ao': 'ao',
     'À': 'à',
+    'Á': 'á',
+    'E': 'e',
 }
 
 
@@ -91,20 +92,31 @@ def preprocess(img):
     return img.convert(mode='RGB')
 
 
+def read_and_postprocess(img):
+    text = image_to_string(img, lang='por')
+    text = text.lower()
+    text = re.sub('\s+', ' ', text)
+    out = []
+    for word in text.split():
+        word = word.capitalize()
+        if CORRECTIONS.get(word):
+            word = CORRECTIONS[word]
+        out.append(word)
+    return ' '.join(out)
+
+
 class Meal:
     def __init__(self, img):
         img = preprocess(Image.open(io.BytesIO(img)).resize(IMAGE_SIZE))
 
         # Recognize the campus.
-        campus = image_to_string(img.crop(CAMPUS_BOUNDS), lang='por').lower()
-        print(f"campus is {campus}")
+        campus = read_and_postprocess(img.crop(CAMPUS_BOUNDS))
         campus_match = re.search(CAMPUS_PATTERN, campus)
         if campus_match == None:
             raise UnrecognizedImageError
 
         # Recognize the date.
-        datestr = image_to_string(img.crop(DATE_BOUNDS), lang='por').lower()
-        print(datestr)
+        datestr = read_and_postprocess(img.crop(DATE_BOUNDS))
         date_match = re.search(DATE_PATTERN, datestr)
         meal_match = re.search(MEAL_PATTERN, datestr)
         if date_match == None or meal_match == None:
@@ -114,32 +126,28 @@ class Meal:
             self.campus = campus_match.group(1)
             self.day = int(date_match.group(1))
             self.month = int(date_match.group(2))
-            self.meal = meal_match.group(1)
+            self.meal_type = meal_match.group(1)
         except ValueError as _:
             raise UnrecognizedImageError
 
         # Recognize meal data.
-        strings = []
-        for bound in BOUNDS:
-            istr = image_to_string(img.crop(bound), lang='por').lower()
-            istr = re.sub('\s+', ' ', istr)
-            # Capitalize words and apply corrections.
-            out = []
-            for word in istr.split():
-                word = word.capitalize()
-                if CORRECTIONS.get(word):
-                    word = CORRECTIONS[word]
-                out.append(word)
-            strings.append(' '.join(out))
+        strings = [read_and_postprocess(img.crop(bound)) for bound in BOUNDS]
 
-        print(strings)
-
-        self.maindish = strings[0]
-        self.vegetarian = strings[1]
-        self.garrison = strings[2]
+        self.main_dish_unrestricted = strings[0]
+        self.main_dish_vegetarian = strings[1]
+        self.garnish = strings[2]
         self.accompaniment = strings[3]
-        self.salad = strings[4]
+        self.salads = strings[4]
         self.dessert = strings[5]
+
+    def display(self):
+        print(f"{self.campus} ~ {self.day}/{self.month} ~ {self.meal_type}")
+        print("\tPrato Principal sem Restrição:", self.main_dish_unrestricted)
+        print("\tPrato Principal Vegetariano:", self.main_dish_vegetarian)
+        print("\tGuarnição:", self.garnish)
+        print("\tAcompanhamento:", self.accompaniment)
+        print("\tSaladas:", self.salads)
+        print("\tSobremesa:", self.dessert)
 
 
 async def download_image(url):
@@ -176,7 +184,7 @@ async def browse(until):
         # Wait and try some more times.
         if parser.urls.issubset(viewed_urls):
             remaining_scroll_attempts -= 1
-            print(f"{remaining_scroll_attempts} attempts remaining.")
+            print(f"SCROLL: {remaining_scroll_attempts} attempts remaining.")
             await page.waitFor(10_000)
             if remaining_scroll_attempts == 0:
                 await browser.close()
@@ -190,14 +198,13 @@ async def browse(until):
 
         for url in parser.urls - viewed_urls:
             await page.waitFor(10_000)
-            print(url)
             img, last_modified = await download_image(url)
-            print(last_modified)
 
             # Reached a post that is older than requested.
             # Try skipping it, give up if more than 8 appear in a row.
             if last_modified < until:
                 remaining_image_attempts -= 1
+                print(f"IMG: {remaining_scroll_attempts} attempts remaining.")
                 if remaining_image_attempts == 0:
                     await browser.close()
                     return output
@@ -205,7 +212,9 @@ async def browse(until):
                 remaining_image_attempts = 8
 
             try:
-                output.append(Meal(img))
+                meal = Meal(img)
+                meal.display()
+                output.append(meal)
             except UnrecognizedImageError as _:
                 continue
 
@@ -217,26 +226,18 @@ async def browse(until):
 def store_meals(meals):
     # Store atomically so that we can catch posts more reliably.
     for meal in meals:
-        print(f"--- {meal.campus} ~ {meal.day}/{meal.month} ~ {meal.meal} ---")
-        print("Prato Principal:", meal.maindish)
-        print("Vegetariano:", meal.vegetarian)
-        print("Guarnição:", meal.garrison)
-        print("Acompanhamento:", meal.accompaniment)
-        print("Salada:", meal.salad)
-        print("Sobremesa:", meal.dessert)
-
         # FIXME Doesn't work near Jan 1st.
         year = datetime.now().year
         try:
             RU.objects.create(
                 date=datetime(year=year, month=meal.month, day=meal.day),
                 campus=meal.campus,
-                lunch=meal.meal,
-                mainMeal=meal.maindish,
-                mainMealVegetarian=meal.vegetarian,
-                garrison=meal.garrison,
+                meal_type=meal.meal_type,
+                main_dish_unrestricted=meal.main_dish_unrestricted,
+                main_dish_vegetarian=meal.main_dish_vegetarian,
+                garnish=meal.garnish,
                 accompaniment=meal.accompaniment,
-                salad=meal.salad,
+                salads=meal.salads,
                 dessert=meal.dessert,
             )
         except IntegrityError as _:
@@ -247,6 +248,8 @@ class Command(BaseCommand):
     help = "Updates the RU database."
 
     def handle(self, *args, **options):
+        print("Begin update")
+
         # Prune objects older than a week, but keep at least 1.
         count = RU.objects.count()
         for obj in RU.objects.all():
@@ -264,3 +267,5 @@ class Command(BaseCommand):
             until = datetime.now(tz=timezone.utc) - timedelta(weeks=1)
 
         store_meals(asyncio.new_event_loop().run_until_complete(browse(until)))
+
+        print("Update success")

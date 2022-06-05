@@ -2,18 +2,18 @@ from django.db import models
 
 
 class RU(models.Model):
-    ALMOÇO = 'almoço'
-    JANTAR = 'jantar'
-    lunch = models.CharField(
+    ALMOÇO = 'Almoço'
+    JANTAR = 'Jantar'
+    meal_type = models.CharField(
         choices=[(ALMOÇO, ALMOÇO), (JANTAR, JANTAR)],
         default=ALMOÇO,
         max_length=6,
     )
 
-    SÃO_CARLOS = 'são carlos'
-    ARARAS = 'araras'
-    SOROCABA = 'sorocaba'
-    LAGOA_DO_SINO = 'lagoa do sino'
+    SÃO_CARLOS = 'São Carlos'
+    ARARAS = 'Araras'
+    SOROCABA = 'Sorocaba'
+    LAGOA_DO_SINO = 'Lagoa do Sino'
     campus = models.CharField(
         choices=[
             (SÃO_CARLOS, SÃO_CARLOS),
@@ -27,19 +27,19 @@ class RU(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     date = models.DateField()
-    mainMeal = models.CharField(default='Não definido', max_length=100)
-    mainMealVegetarian = models.CharField(default='Não definido', max_length=100)
-    garrison = models.CharField(default='Não definido', max_length=100)
-    accompaniment = models.CharField(default='Não definido', max_length=100)
-    salad = models.CharField(default='Não definido', max_length=100)
-    dessert = models.CharField(default='Não definido', max_length=100)
+    main_dish_unrestricted = models.CharField(max_length=100)
+    main_dish_vegetarian = models.CharField(max_length=100)
+    garnish = models.CharField(max_length=100)
+    accompaniment = models.CharField(max_length=100)
+    salads = models.CharField(max_length=100)
+    dessert = models.CharField(max_length=100)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 'date',
-                'lunch',
+                'meal_type',
                 'campus',
-                name='unique_date_lunch_campus',
+                name='unique_date_type_campus',
             )
         ]

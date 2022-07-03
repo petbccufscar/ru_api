@@ -1,9 +1,15 @@
 version: '2'
+
+volumes:
+  local_postgres_data: {}
+  local_postgres_data_backups: {}
+
 services:
   db:
     image: postgres:latest
-    ports:
-      - "5432:5432"
+    volumes:
+      - local_postgres_data:/var/lib/postgresql/data:Z
+      - local_postgres_data_backups:/backups:z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-d $$POSTGRES_DB -U $$POSTGRES_USER"]
       interval: 5s
@@ -11,17 +17,18 @@ services:
       retries: 20
     environment:
       - POSTGRES_DB=postgres
-      - POSRGRES_NAME=postgres
       - PGUSER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD
   web:
     build: .
-    ports:
-      - "8000:8000"
+    volumes:
+      - type: bind
+        source: ./share
+        target: /var/run/share
     environment:
       - DJDEBUG=1
       - PORT=8000
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - POSTGRES_PASSWORD
     depends_on:
       db:
         condition: service_healthy

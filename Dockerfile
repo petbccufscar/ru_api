@@ -11,16 +11,17 @@ RUN apt-get update \
     fonts-freefont-ttf libxss1 \
     && rm -rf /var/lib/apt/lists/*
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-RUN useradd -m myuser
-
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
 COPY . /opt/ru/
-RUN python3 /opt/ru/manage.py collectstatic --noinput
+WORKDIR /opt/ru
+RUN python3 manage.py collectstatic --noinput
 
-USER myuser
-CMD python3 /opt/ru/manage.py migrate \
-    && python3 /opt/ru/manage.py runserver 0.0.0.0:$PORT
+CMD python3 manage.py migrate \
+    && gunicorn \
+        --workers 4 \
+        --log-level=debug \
+        --errror-logfile=/var/run/share/error.log \
+        --bind=unix:/var/run/share/gunicorn.sock \
+        ru_api.wsgi

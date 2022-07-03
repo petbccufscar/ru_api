@@ -22,7 +22,6 @@ MEALS = [RU.ALMOÇO, RU.JANTAR]
 MEAL_PATTERN = f'({"|".join(MEALS)})'
 
 CAMPUSES = [RU.SÃO_CARLOS, RU.ARARAS, RU.SOROCABA, RU.LAGOA_DO_SINO]
-CAMPUS_PATTERN = f'({"|".join(CAMPUSES)})'
 
 BASE_URL = 'https://www.facebook.com'
 
@@ -32,25 +31,23 @@ ALBUM_URL = BASE_URL + '/media/set/?set=a.160605075654161'
 # Size of the images we expect to be posted.
 IMAGE_SIZE = (960, 540)
 
-# Rectangle bounds for where we expect the campus name to be written.
-# Bounds are written as (left, upper, right, lower).
-CAMPUS_BOUNDS = (281, 10, 679, 70)
-
 # Rectangle bounds for where we expect the date to be written.
-DATE_BOUNDS = (281, 81, 679, 140)
+# Bounds are written as (left, upper, right, lower).
+DATE_BOUNDS = (254, 72, 690, 108)
 
 # Rectangle bounds for where we expect data to be written.
-BOUNDS = [
-    (512, 141, 916, 201), # Main dish
-    (512, 207, 916, 266), # Vegetarian
-    (512, 272, 916, 332), # Garrison
-    (512, 338, 916, 397), # Accompaniment
-    (512, 403, 916, 462), # Salad
-    (512, 469, 916, 528), # Dessert
-]
+MAIN_DISH_BOUNDS     = (520, 126, 910, 162)
+VEGETARIAN_BOUNDS    = (520, 177, 910, 214)
+EXTRA_BOUNDS         = (520, 229, 910, 265)
+GARNISH_BOUNDS       = (520, 280, 910, 316)
+SALAD_BOUNDS         = (520, 331, 910, 367)
+ACCOMPANIMENT_BOUNDS = (520, 383, 910, 419)
+DESSERT_BOUNDS       = (520, 434, 910, 470)
+JUICE_BOUNDS         = (520, 485, 910, 521)
 
 # Dictionary for correcting Tesseract jank on a case-by-case basis.
 CORRECTIONS = {
+    'C/': 'c/',
     'Com': 'com',
     'Pts': 'PTS',
     'De': 'de',
@@ -91,8 +88,8 @@ def preprocess(img):
     return img.convert(mode='RGB')
 
 
-def read_and_postprocess(img):
-    text = image_to_string(img, lang='por')
+def read_img(img, bounds):
+    text = image_to_string(img.crop(bounds), lang='por')
     text = text.lower()
     text = re.sub('\s+', ' ', text)
     out = []
@@ -103,26 +100,18 @@ def read_and_postprocess(img):
         out.append(word)
     return ' '.join(out)
 
-
 class Meal:
     def __init__(self, img):
         img = preprocess(Image.open(io.BytesIO(img)).resize(IMAGE_SIZE))
 
-        # Recognize the campus.
-        campus = read_and_postprocess(img.crop(CAMPUS_BOUNDS))
-        campus_match = re.search(CAMPUS_PATTERN, campus)
-        if campus_match == None:
-            raise UnrecognizedImageError
-
         # Recognize the date.
-        datestr = read_and_postprocess(img.crop(DATE_BOUNDS))
+        datestr = read_img(img, DATE_BOUNDS)
         date_match = re.search(DATE_PATTERN, datestr)
         meal_match = re.search(MEAL_PATTERN, datestr)
         if date_match == None or meal_match == None:
             raise UnrecognizedImageError
 
         try:
-            self.campus = campus_match.group(1)
             self.day = int(date_match.group(1))
             self.month = int(date_match.group(2))
             self.meal_type = meal_match.group(1)
@@ -130,23 +119,25 @@ class Meal:
             raise UnrecognizedImageError
 
         # Recognize meal data.
-        strings = [read_and_postprocess(img.crop(bound)) for bound in BOUNDS]
-
-        self.main_dish_unrestricted = strings[0]
-        self.main_dish_vegetarian = strings[1]
-        self.garnish = strings[2]
-        self.accompaniment = strings[3]
-        self.salads = strings[4]
-        self.dessert = strings[5]
+        self.main_dish_unrestricted = read_img(img, MAIN_DISH_BOUNDS)
+        self.main_dish_vegetarian = read_img(img, VEGETARIAN_BOUNDS)
+        self.main_dish_extra = read_img(img, EXTRA_BOUNDS)
+        self.garnish = read_img(img, GARNISH_BOUNDS)
+        self.accompaniment = read_img(img, ACCOMPANIMENT_BOUNDS)
+        self.salads = read_img(img, SALAD_BOUNDS)
+        self.dessert = read_img(img, DESSERT_BOUNDS)
+        self.juice = read_img(img,JUICE_BOUNDS)
 
     def display(self):
-        print(f"{self.campus} ~ {self.day}/{self.month} ~ {self.meal_type}")
+        print(f"{self.day}/{self.month} ~ {self.meal_type}")
         print("\tPrato Principal sem Restrição:", self.main_dish_unrestricted)
         print("\tPrato Principal Vegetariano:", self.main_dish_vegetarian)
+        print("\tPrato Principal Extra:", self.main_dish_extra)
         print("\tGuarnição:", self.garnish)
         print("\tAcompanhamento:", self.accompaniment)
         print("\tSaladas:", self.salads)
         print("\tSobremesa:", self.dessert)
+        print("\tSuco:", self.juice)
 
 
 async def download_image(url):
@@ -230,24 +221,34 @@ async def get_meals(until):
         await browser.close()
 
 
+def nearest_date(month, day):
+    current_year = datetime.now().year
+    dates = []
+    for year in [current_year - 1, current_year, current_year + 1]:
+        date = datetime(year, month, day)
+        dates.append((abs(datetime.now() - date), date))
+    return min(dates)[1]
+
+
 def store_meals(meals):
     for meal in meals:
-        # FIXME Doesn't work near Jan 1st.
-        year = datetime.now().year
-        try:
-            RU.objects.create(
-                date=datetime(year=year, month=meal.month, day=meal.day),
-                campus=meal.campus,
-                meal_type=meal.meal_type,
-                main_dish_unrestricted=meal.main_dish_unrestricted,
-                main_dish_vegetarian=meal.main_dish_vegetarian,
-                garnish=meal.garnish,
-                accompaniment=meal.accompaniment,
-                salads=meal.salads,
-                dessert=meal.dessert,
-            )
-        except IntegrityError as _:
-            continue
+        for campus in CAMPUSES:
+            try:
+                RU.objects.create(
+                    date=nearest_date(meal.month, meal.day),
+                    campus=campus,
+                    meal_type=meal.meal_type,
+                    main_dish_unrestricted=meal.main_dish_unrestricted,
+                    main_dish_vegetarian=meal.main_dish_vegetarian,
+                    main_dish_extra=meal.main_dish_extra,
+                    garnish=meal.garnish,
+                    accompaniment=meal.accompaniment,
+                    salads=meal.salads,
+                    dessert=meal.dessert,
+                    juice=meal.juice,
+                )
+            except IntegrityError as _:
+                continue
 
 
 class Command(BaseCommand):
@@ -259,7 +260,7 @@ class Command(BaseCommand):
         # Prune objects older than a week, but keep at least 1.
         count = RU.objects.count()
         for obj in RU.objects.all():
-            age = obj.date - date.today()
+            age = date.today() - obj.date
             if age.days > 7 and count > 1:
                 obj.delete()
                 count = count - 1

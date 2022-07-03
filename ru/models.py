@@ -27,12 +27,15 @@ class RU(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     date = models.DateField()
-    main_dish_unrestricted = models.CharField(max_length=100)
-    main_dish_vegetarian = models.CharField(max_length=100)
-    garnish = models.CharField(max_length=100)
-    accompaniment = models.CharField(max_length=100)
-    salads = models.CharField(max_length=100)
-    dessert = models.CharField(max_length=100)
+
+    main_dish_unrestricted = models.CharField(default='', max_length=100)
+    main_dish_vegetarian = models.CharField(default='', max_length=100)
+    main_dish_extra = models.CharField(default='', max_length=100)
+    garnish = models.CharField(default='', max_length=100)
+    accompaniment = models.CharField(default='', max_length=100)
+    salads = models.CharField(default='', max_length=100)
+    dessert = models.CharField(default='', max_length=100)
+    juice = models.CharField(default='', max_length=100)
 
     class Meta:
         constraints = [

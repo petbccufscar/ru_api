@@ -2,6 +2,9 @@ from django.db import models
 
 
 class RU(models.Model):
+    def __str__(self):
+        return f'{self.date} {self.meal_type} {self.campus}'
+
     ALMOÇO = 'Almoço'
     JANTAR = 'Jantar'
     meal_type = models.CharField(

@@ -22,6 +22,6 @@ CMD python3 manage.py migrate \
     && gunicorn \
         --workers 4 \
         --log-level=debug \
-        --errror-logfile=/var/run/share/error.log \
+        --error-logfile=/var/run/share/error.log \
         --bind=unix:/var/run/share/gunicorn.sock \
         ru_api.wsgi

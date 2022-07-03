@@ -10,25 +10,16 @@ services:
     volumes:
       - local_postgres_data:/var/lib/postgresql/data:Z
       - local_postgres_data_backups:/backups:z
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d $$POSTGRES_DB -U $$POSTGRES_USER"]
-      interval: 5s
-      timeout: 2s
-      retries: 20
     environment:
       - POSTGRES_DB=postgres
       - PGUSER=postgres
-      - POSTGRES_PASSWORD
+    env_file:
+      - .env
   web:
     build: .
     volumes:
-      - type: bind
-        source: ./share
-        target: /var/run/share
-    environment:
-      - DJDEBUG=1
-      - PORT=8000
-      - POSTGRES_PASSWORD
+      - ./share:/var/run/share
+    env_file:
+      - .env
     depends_on:
-      db:
-        condition: service_healthy
+      - db

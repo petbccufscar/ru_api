@@ -4,14 +4,8 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = os.environ.get('DJDEBUG') != None
-SECRET_KEY = None
-if DEBUG:
-    SECRET_KEY = 'django-insecure-)al6p4e^pvi=!ixfyr!uxa()sw0=5xylvsrt#sr6kc_ji'
-else:
-    SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
-    ALLOWED_HOSTS = ['ru-api.herokuapp.com']
-
+SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+ALLOWED_HOSTS = ['petbcc.ufscar.br']
 
 # Application definition
 

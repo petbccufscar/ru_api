@@ -16,9 +16,9 @@ RUN pip3 install -r /tmp/requirements.txt
 
 COPY . /opt/ru/
 WORKDIR /opt/ru
-RUN python3 manage.py collectstatic --noinput
 
-CMD python3 manage.py migrate \
+CMD python3 manage.py collectstatic --noinput \
+    && python3 manage.py migrate \
     && gunicorn \
         --workers 4 \
         --log-level=debug \

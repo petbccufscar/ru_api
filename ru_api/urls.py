@@ -18,6 +18,6 @@ from django.urls import path
 from ru import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.RUView.as_view()),
+    path('ru_api/admin/', admin.site.urls),
+    path('ru_api/', views.RUView.as_view()),
 ]

@@ -1,0 +1,8 @@
+beautifulsoup4
+django
+djangorestframework
+gunicorn
+psycopg2-binary
+pytesseract
+requests
+whitenoise

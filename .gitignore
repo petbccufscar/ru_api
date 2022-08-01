@@ -3,3 +3,4 @@
 /.env
 *.sqlite3
 *.pyc
+/.venv

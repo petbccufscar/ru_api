@@ -166,22 +166,30 @@ def nearest_date(month, day):
 def store_meals(meals):
     for meal in meals:
         for campus in CAMPUSES:
-            try:
-                RU.objects.create(
-                    date=nearest_date(meal.month, meal.day),
-                    campus=campus,
-                    meal_type=meal.meal_type,
-                    main_dish_unrestricted=meal.main_dish_unrestricted,
-                    main_dish_vegetarian=meal.main_dish_vegetarian,
-                    main_dish_extra=meal.main_dish_extra,
-                    garnish=meal.garnish,
-                    accompaniment=meal.accompaniment,
-                    salads=meal.salads,
-                    dessert=meal.dessert,
-                    juice=meal.juice,
-                )
-            except IntegrityError as _:
-                continue
+            date = nearest_date(meal.month, meal.day)
+            
+            obj = RU.objects.get(
+                date=date,
+                campus=campus,
+                meal_type=meal.meal_type
+            )
+
+            if obj:
+                obj.delete()
+
+            RU.objects.create(
+                date=date,
+                campus=campus,
+                meal_type=meal.meal_type,
+                main_dish_unrestricted=meal.main_dish_unrestricted,
+                main_dish_vegetarian=meal.main_dish_vegetarian,
+                main_dish_extra=meal.main_dish_extra,
+                garnish=meal.garnish,
+                accompaniment=meal.accompaniment,
+                salads=meal.salads,
+                dessert=meal.dessert,
+                juice=meal.juice,
+            )
 
 
 class Command(BaseCommand):

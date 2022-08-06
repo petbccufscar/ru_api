@@ -167,15 +167,12 @@ def store_meals(meals):
     for meal in meals:
         for campus in CAMPUSES:
             date = nearest_date(meal.month, meal.day)
-            
-            obj = RU.objects.get(
+
+            RU.objects.filter(
                 date=date,
                 campus=campus,
                 meal_type=meal.meal_type
-            )
-
-            if obj:
-                obj.delete()
+            ).delete()
 
             RU.objects.create(
                 date=date,

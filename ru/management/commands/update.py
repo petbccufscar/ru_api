@@ -37,6 +37,8 @@ SUBR_BOUNDS = (1004, 132, 1854, 1054)
 # Rectangle bounds for where we expect the date to be written.
 DATE_BOUNDS = (15, 15, 831, 108)
 
+CAMPI_BOUNDS = (580, 24, 1326, 127)
+
 # Rectangle bounds for where we expect data to be written.
 MAIN_DISH_BOUNDS     = (429, 106, 826, 201)
 VEGETARIAN_BOUNDS    = (429, 201, 826, 301)
@@ -115,10 +117,23 @@ class Meal:
         self.accompaniment = read_img(img, ACCOMPANIMENT_BOUNDS)
         self.salads = read_img(img, SALAD_BOUNDS)
         self.dessert = read_img(img, DESSERT_BOUNDS)
-        self.juice = read_img(img,JUICE_BOUNDS)
+        self.juice = read_img(img, JUICE_BOUNDS)
+        self.campi = ""
+
+    def setCampi(self, title : str):
+        result = []
+        for campus in CAMPUSES:
+            if campus.lower() in title.lower():
+                result.append(campus)
+
+        if len(result) == 0:
+            result = CAMPUSES
+        
+        self.campi = result
 
     def display(self):
         print(f"{self.day}/{self.month} ~ {self.meal_type}")
+        print('\tCampi:', ", ".join(self.campi))
         print("\tPrato Principal sem Restrição:", self.main_dish_unrestricted)
         print("\tPrato Principal Vegetariano:", self.main_dish_vegetarian)
         print("\tPrato Principal Extra:", self.main_dish_extra)
@@ -141,12 +156,14 @@ def get_meals():
             continue
         try:
             meal = Meal(preprocess(image.crop(SUBL_BOUNDS)))
+            meal.setCampi(read_img(image, CAMPI_BOUNDS))
             meal.display()
             out.append(meal)
         except UnrecognizedImageError:
             print("fail")
         try:
             meal = Meal(preprocess(image.crop(SUBR_BOUNDS)))
+            meal.setCampi(read_img(image, CAMPI_BOUNDS))
             meal.display()
             out.append(meal)
         except UnrecognizedImageError:
@@ -165,7 +182,7 @@ def nearest_date(month, day):
 
 def store_meals(meals):
     for meal in meals:
-        for campus in CAMPUSES:
+        for campus in meal.campi:
             date = nearest_date(meal.month, meal.day)
 
             RU.objects.filter(

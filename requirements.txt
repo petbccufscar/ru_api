@@ -22,15 +22,7 @@ gunicorn==20.1.0
     # via -r requirements.in
 idna==3.3
     # via requests
-packaging==21.3
-    # via pytesseract
-pillow==9.1.1
-    # via pytesseract
 psycopg2-binary==2.9.3
-    # via -r requirements.in
-pyparsing==3.0.9
-    # via packaging
-pytesseract==0.3.9
     # via -r requirements.in
 pytz==2022.1
     # via djangorestframework

@@ -125,6 +125,8 @@ def get_meals():
             state = 'meta'
             meal.setCampi(p.text)
 
+    out.append(meal)
+
     for m in out:
         m.display()
 

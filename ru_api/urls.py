@@ -19,5 +19,6 @@ from ru import views
 
 urlpatterns = [
     path('ru_api/admin/', admin.site.urls),
+    path('ru_api/notice', views.NoticeView.as_view()),
     path('ru_api/', views.RUView.as_view()),
 ]

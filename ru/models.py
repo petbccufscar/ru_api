@@ -49,3 +49,9 @@ class RU(models.Model):
                 name='unique_date_type_campus',
             )
         ]
+
+
+class Notice(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=100)
+    content = models.TextField()

@@ -1,6 +1,6 @@
 
 /share
-/.env
+*.env
 *.sqlite3
 *.pyc
 /.venv

@@ -52,39 +52,68 @@ class Meal:
         print("\tSobremesa:", self.dessert)
         print("\tSuco:", self.juice)
 
+CORRECTIONS = {
+    'C/': 'c/',
+    'Com': 'com',
+    'Pts': 'PTS',
+    'De': 'de',
+    'Do': 'do',
+    'Da': 'da',
+    'Em': 'em',
+    'No': 'no',
+    'Na': 'na',
+    'Ou': 'ou',
+    'A': 'a',
+    'Ao': 'ao',
+    'À': 'à',
+    'Á': 'á',
+    'E': 'e',
+}
+
+def postprocess(text):
+    text = text.lower()
+    text = re.sub('\s+', ' ', text)
+    out = []
+    for word in text.split():
+        word = word.capitalize()
+        if CORRECTIONS.get(word):
+            word = CORRECTIONS[word]
+        out.append(word)
+    return ' '.join(out)
 
 def get_meals():
     out = []
     soup = BeautifulSoup(get(MENU_URL).text, 'html.parser')
-    ps = soup.find(id='content-core').find_all('p')
-    while not re.match('cardápio', ps[0].text, flags=re.I):
-        ps.pop(0)
+    blocks = soup.find(id='content-core').get_text('`').split('`')
+    while not re.match('card(?:a|á)pio', blocks[0], flags=re.I):
+        blocks.pop(0)
+    blocks.pop(0)
 
     state = None
     meal = Meal()
-    for p in ps:
-        if match := re.search('restrição.*:\s*(.*)', p.text, flags=re.I):
+    for block in blocks:
+        if match := re.search('restri(?:c|ç)(?:a|ã)o.*:\s*(.*)', block, flags=re.I):
             state = 'data'
-            meal.main_dish_unrestricted = match[1]
-        elif match := re.search('vegetariano.*:\s*(.*)', p.text, flags=re.I):
+            meal.main_dish_unrestricted = postprocess(match[1])
+        elif match := re.search('vegetariano.*:\s*(.*)', block, flags=re.I):
             state = 'data'
-            meal.main_dish_vegetarian = match[1]
-        elif match := re.search('extra.*:\s*(.*)', p.text, flags=re.I):
+            meal.main_dish_vegetarian = postprocess(match[1])
+        elif match := re.search('extra.*:\s*(.*)', block, flags=re.I):
             state = 'data'
-            meal.main_dish_extra = match[1]
-        elif match := re.search('guarniç.*:\s*(.*)', p.text, flags=re.I):
+            meal.main_dish_extra = postprocess(match[1])
+        elif match := re.search('guarni(?:c|ç).*:\s*(.*)', block, flags=re.I):
             state = 'data'
-            meal.garnish = match[1]
-        elif match := re.search('acompanhamento.*:\s*(.*)', p.text, flags=re.I):
+            meal.garnish = postprocess(match[1])
+        elif match := re.search('acompanhamento.*:\s*(.*)', block, flags=re.I):
             state = 'data'
-            meal.accompaniment = match[1]
-        elif match := re.search('salada.*:\s*(.*)', p.text, flags=re.I):
+            meal.accompaniment = postprocess(match[1])
+        elif match := re.search('salada.*:\s*(.*)', block, flags=re.I):
             state = 'data'
-            meal.salads = match[1]
-        elif match := re.search('sobremesa.*:\s*(.*)', p.text, flags=re.I):
+            meal.salads = postprocess(match[1])
+        elif match := re.search('sobremesa.*:\s*(.*)', block, flags=re.I):
             state = 'data'
-            meal.dessert = match[1]
-        elif match := re.search('(\d+)\s*\/\s*(\d+)', p.text):
+            meal.dessert = postprocess(match[1])
+        elif match := re.search('(\d+)\s*\/\s*(\d+)', block):
             if state == 'data':
                 new_meal = Meal()
                 new_meal.campi = meal.campi
@@ -94,7 +123,7 @@ def get_meals():
             state = 'meta'
             meal.day = int(match[1])
             meal.month = int(match[2])
-        elif re.search('almoço', p.text, flags=re.I):
+        elif re.search('almo(?:c|ç)o', block, flags=re.I):
             if state == 'data':
                 new_meal = Meal()
                 new_meal.day = meal.day
@@ -104,7 +133,7 @@ def get_meals():
                 meal = new_meal
             state = 'meta'
             meal.meal_type = RU.ALMOÇO
-        elif re.search('jantar', p.text, flags=re.I):
+        elif re.search('jantar', block, flags=re.I):
             if state == 'data':
                 new_meal = Meal()
                 new_meal.day = meal.day
@@ -114,7 +143,7 @@ def get_meals():
                 meal = new_meal
             state = 'meta'
             meal.meal_type = RU.JANTAR
-        elif re.search('são\s*carlos|araras|sorocaba|lagoa\s*do\s*sino', p.text, flags=re.I):
+        elif re.search('s(?:a|ã)o\s*carlos|araras|sorocaba|lagoa\s*do\s*sino', block, flags=re.I):
             if state == 'data':
                 new_meal = Meal()
                 new_meal.day = meal.day
@@ -123,7 +152,7 @@ def get_meals():
                 out.append(meal)
                 meal = new_meal
             state = 'meta'
-            meal.setCampi(p.text)
+            meal.setCampi(postprocess(block))
 
     out.append(meal)
 

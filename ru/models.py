@@ -19,15 +19,14 @@ class RU(models.Model):
     URL_LAGOA_DO_SINO = 'lagoa_do_sino'
 
     def url_to_campus(url_campus):
-        match url_campus:
-            case RU.URL_SÃO_CARLOS:
-                return RU.SÃO_CARLOS
-            case RU.URL_ARARAS:
-                return RU.ARARAS
-            case RU.URL_SOROCABA:
-                return RU.SOROCABA
-            case RU.URL_LAGOA_DO_SINO:
-                return RU.LAGOA_DO_SINO
+        if url_campus == RU.URL_SÃO_CARLOS:
+            return RU.SÃO_CARLOS
+        elif url_campus == RU.URL_ARARAS:
+            return RU.ARARAS
+        elif url_campus == RU.URL_SOROCABA:
+            return RU.SOROCABA
+        elif url_campus == RU.URL_LAGOA_DO_SINO:
+            return RU.LAGOA_DO_SINO
 
     SÃO_CARLOS = 'São Carlos'
     ARARAS = 'Araras'

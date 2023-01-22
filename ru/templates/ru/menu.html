@@ -1,0 +1,133 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardápio {{ campus }}</title>
+    <link rel="icon" href="{% static 'ru/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'ru/menu.css' %}">
+    <link rel="stylesheet" href="{% static 'ru/footer.css' %}">
+    <style>
+        .menus {
+            display: none;
+        }
+
+        {% for item in lst %}
+        #radio-cal-{{ item.index }}:checked ~ .header #cal-cal-{{ item.index }} .cal {
+            background-color: #eee;
+        }
+
+        #radio-cal-{{ item.index }}:checked ~ #menu-cal-{{ item.index }} {
+            display: inherit;
+        }
+        {% endfor %}
+    </style>
+</head>
+
+<body>
+    {% for item in lst %}
+    <input
+        type="radio"
+        name="radio-cals"
+        id="radio-cal-{{ item.index }}"
+        {% if today == item.index %}
+            checked="checked"
+        {% endif %}
+    />
+    {% endfor %}
+    <h1 class="campus">Cardápio {{ campus }}</h1>
+    <div class="header">
+        {% for item in lst %}
+        <label id="cal-cal-{{ item.index }}" for="radio-cal-{{ item.index }}">
+            <div class="cal">
+                <div class="day">{{ item.day }}</div>
+                <div class="weekday">{{ item.weekDay }}</div>
+            </div>
+        </label>
+        {% endfor %}
+    </div>
+    {% for item in lst %}
+    <div class="menus" id="menu-cal-{{ item.index }}">
+        <div class="lunch">
+            <h2>Almoço</h2>
+            <div class="entry">
+                <div class="etext">Prato Principal: </div>
+                <div>{{ item.lunch.main_dish_unrestricted }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Prato Principal - Vegetariano: </div>
+                <div>{{ item.lunch.main_dish_vegetarian }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Prato Principal - Extra: </div>
+                <div>{{ item.lunch.main_dish_extra }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Guarnição: </div>
+                <div>{{ item.lunch.garnish }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Acompanhamento: </div>
+                <div>{{ item.lunch.accompaniment }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Saladas: </div>
+                <div>{{ item.lunch.salads }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Sobremesa: </div>
+                <div>{{ item.lunch.dessert }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Suco: </div>
+                <div>{{ item.lunch.juice }}</div>
+            </div>
+        </div>
+        <div class="dinner">
+            <h2>Jantar</h2>
+            <div class="entry">
+                <div class="etext">Prato Principal: </div>
+                <div>{{ item.dinner.main_dish_unrestricted }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Prato Principal - Vegetariano: </div>
+                <div>{{ item.dinner.main_dish_vegetarian }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Prato Principal - Extra: </div>
+                <div>{{ item.dinner.main_dish_extra }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Guarnição: </div>
+                <div>{{ item.dinner.garnish }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Acompanhamento: </div>
+                <div>{{ item.dinner.accompaniment }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Saladas: </div>
+                <div>{{ item.dinner.salads }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Sobremesa: </div>
+                <div>{{ item.dinner.dessert }}</div>
+            </div>
+            <div class="entry">
+                <div class="etext">Suco: </div>
+                <div>{{ item.dinner.juice }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    <footer>
+        <div><a href="https://petbcc.ufscar.br">Site do PET BCC</a></div>
+        <div><a href="/ru_api/index.html">Sobre a RU API</a></div>
+    </footer>
+</body>
+
+</html>

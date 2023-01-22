@@ -13,6 +13,22 @@ class RU(models.Model):
         max_length=6,
     )
 
+    URL_SÃO_CARLOS = 'sao_carlos'
+    URL_ARARAS = 'araras'
+    URL_SOROCABA = 'sorocaba'
+    URL_LAGOA_DO_SINO = 'lagoa_do_sino'
+
+    def url_to_campus(url_campus):
+        match url_campus:
+            case RU.URL_SÃO_CARLOS:
+                return RU.SÃO_CARLOS
+            case RU.URL_ARARAS:
+                return RU.ARARAS
+            case RU.URL_SOROCABA:
+                return RU.SOROCABA
+            case RU.URL_LAGOA_DO_SINO:
+                return RU.LAGOA_DO_SINO
+
     SÃO_CARLOS = 'São Carlos'
     ARARAS = 'Araras'
     SOROCABA = 'Sorocaba'

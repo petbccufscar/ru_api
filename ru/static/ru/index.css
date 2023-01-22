@@ -1,0 +1,32 @@
+* {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+code {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+}
+
+html {
+    margin: 1rem;
+}
+
+h1 {
+    text-align: center;
+}
+
+.cols {
+    margin: 2em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.parbody {
+    max-width: 66ch;
+}
+
+.parbody p {
+    text-align: justify;
+}

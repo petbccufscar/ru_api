@@ -1,0 +1,17 @@
+footer {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1 0 auto;
+}
+
+footer>div {
+    padding: 15px
+}
+
+@media screen and (min-width: 768px) {
+    footer {
+        flex-direction: row;
+    }
+}

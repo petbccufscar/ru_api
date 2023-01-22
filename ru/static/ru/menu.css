@@ -1,0 +1,84 @@
+* {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0px
+}
+
+.header {
+    border: none;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+input {
+    display: none;
+}
+
+.cal {
+    border: 1px solid black;
+    border-radius: 7px;
+    background-color: white;
+    margin: 10px 0px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.campus {
+    text-align: center;
+}
+
+.menus>div>h2 {
+    text-align: center;
+}
+
+.day {
+    font-size: 25px;
+}
+
+.entry {
+    margin: 10px;
+}
+
+.etext {
+    font-weight: bold;
+}
+
+.menus {
+    flex: 100 0 auto;
+    display: flex;
+    justify-content: space-evenly;
+    flex-direction: column;
+}
+
+@media screen and (min-width: 480px) {
+    .header {
+        justify-content: center;
+    }
+
+    .cal {
+        margin: 6px;
+    }
+}
+
+@media screen and (min-width: 768px) {
+    .cal {
+        margin: 10px;
+        padding: 15px 25px 15px 25px;
+    }
+
+    .menus {
+        flex-direction: row;
+    }
+}

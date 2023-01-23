@@ -85,10 +85,7 @@ def meal_opt_dict(meal):
 
 def menu_view(request, campus):
     today = date.today()
-    if weekday_correct(today) == 0:
-        sunday = today
-    else:
-        sunday = today - timedelta(days=weekday_correct(today) % 7 - 7)
+    sunday = today - timedelta(days=weekday_correct(today))
 
     lst = []
     for delta in range(7):

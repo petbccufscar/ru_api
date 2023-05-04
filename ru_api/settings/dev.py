@@ -25,8 +25,10 @@ SECRET_KEY = 'django-insecure-)al6p4e^pvi=!ixfyr!uxa()sw0=5xylvsrt#sr6kc_ji8a0zn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+BASE_URL = 'localhost:8000'
+ALLOWED_HOSTS = ['localhost']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
+CORS_ORIGIN_WHITELIST = ['http://localhost:8000']
 
 # Application definition
 
@@ -37,8 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_cleanup.apps.CleanupConfig',
     'rest_framework',
-    'ru'
+    'ru',
+    'planner_updates'
 ]
 
 MIDDLEWARE = [
@@ -118,7 +122,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
+STATIC_ROOT = 'share/ru_api/static'
 STATIC_URL = 'ru_api/static/'
+
+MEDIA_ROOT = 'share/ru_api/assets'
+MEDIA_URL = 'ru_api/assets/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

@@ -15,12 +15,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from ru import views
+from ru import views as ru_views
+from planner_updates import views as updates_views
 
 urlpatterns = [
     path('ru_api/admin/', admin.site.urls),
-    path('ru_api/notice/', views.NoticeView.as_view()),
-    path('ru_api/', views.RUView.as_view()),
-    path('ru_api/menu/<str:campus>/', views.menu_view),
-    path('ru_api/index.html', views.campus_view),
+    path('ru_api/notice/', ru_views.NoticeView.as_view()),
+    path('ru_api/', ru_views.RUView.as_view()),
+    path('ru_api/menu/<str:campus>/', ru_views.menu_view),
+    path('ru_api/index.html', ru_views.campus_view),
+    path('ru_api/updates/v1/manifest', updates_views.ManifestView.as_view()),
+    path('ru_api/updates/v1/upload', updates_views.UploadAssetView.as_view())
 ]

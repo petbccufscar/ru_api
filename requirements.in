@@ -1,7 +1,9 @@
 beautifulsoup4
 django
 djangorestframework
+django-cleanup
 gunicorn
 psycopg2-binary
+pip-tools
 requests
 whitenoise

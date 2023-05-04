@@ -93,6 +93,7 @@ class ManifestPostTests(APITransactionTestCase):
             '/ru_api/updates/v1/manifest',
             format='json',
             data={
+                # 'channel': 'testing',
                 'platform': 'android',
                 'runtimeVersion': '0',
                 'launchAsset': self.dummy_png_objid,
@@ -108,6 +109,7 @@ class ManifestPostTests(APITransactionTestCase):
             format='json',
             data={
                 'channel': 'testing',
+                # 'platform': 'android',
                 'runtimeVersion': '0',
                 'launchAsset': self.dummy_png_objid,
                 'assets': [],
@@ -123,6 +125,7 @@ class ManifestPostTests(APITransactionTestCase):
             data={
                 'channel': 'testing',
                 'platform': 'android',
+                # 'runtimeVersion': '0',
                 'launchAsset': self.dummy_png_objid,
                 'assets': [],
                 'extra': {},
@@ -138,6 +141,7 @@ class ManifestPostTests(APITransactionTestCase):
                 'channel': 'testing',
                 'platform': 'android',
                 'runtimeVersion': '0',
+                # 'launchAsset': self.dummy_png_objid,
                 'assets': [],
                 'extra': {},
             },
@@ -153,6 +157,7 @@ class ManifestPostTests(APITransactionTestCase):
                 'platform': 'android',
                 'runtimeVersion': '0',
                 'launchAsset': self.dummy_png_objid,
+                # 'assets': [],
                 'extra': {},
             },
             HTTP_AUTHORIZATION=authentication_header(),
@@ -168,6 +173,7 @@ class ManifestPostTests(APITransactionTestCase):
                 'runtimeVersion': '0',
                 'launchAsset': self.dummy_png_objid,
                 'assets': [],
+                # 'extra': {},
             },
             HTTP_AUTHORIZATION=authentication_header(),
         )
@@ -282,6 +288,7 @@ class ManifestGetTests(APITransactionTestCase):
         res = self.client.get(
             '/ru_api/updates/v1/manifest',
             **{
+                # 'HTTP_EXPO-PLATFORM': 'android',
                 'HTTP_EXPO-PROTOCOL-VERSION': '1',
                 'HTTP_EXPO-RUNTIME-VERSION': '0',
                 'HTTP_UFSCAR-PLANNER-CHANNEL': 'testing',
@@ -293,6 +300,7 @@ class ManifestGetTests(APITransactionTestCase):
             '/ru_api/updates/v1/manifest',
             **{
                 'HTTP_EXPO-PLATFORM': 'android',
+                # 'HTTP_EXPO-PROTOCOL-VERSION': '1',
                 'HTTP_EXPO-RUNTIME-VERSION': '0',
                 'HTTP_UFSCAR-PLANNER-CHANNEL': 'testing',
             }
@@ -304,6 +312,7 @@ class ManifestGetTests(APITransactionTestCase):
             **{
                 'HTTP_EXPO-PLATFORM': 'android',
                 'HTTP_EXPO-PROTOCOL-VERSION': '1',
+                # 'HTTP_EXPO-RUNTIME-VERSION': '0',
                 'HTTP_UFSCAR-PLANNER-CHANNEL': 'testing',
             }
         )
@@ -315,6 +324,7 @@ class ManifestGetTests(APITransactionTestCase):
                 'HTTP_EXPO-PLATFORM': 'android',
                 'HTTP_EXPO-PROTOCOL-VERSION': '1',
                 'HTTP_EXPO-RUNTIME-VERSION': '0',
+                # 'HTTP_UFSCAR-PLANNER-CHANNEL': 'testing',
             }
         )
         self.assertEqual(res.status_code, 400)

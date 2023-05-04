@@ -199,7 +199,7 @@ class ManifestView(APIView):
                 try:
                     assets.append(Asset.objects.get(id=request_asset))
                 except Asset.DoesNotExist:
-                    res.data = {'error': 'at least one asset was not found'}
+                    res.data = {'error': f'asset id {request_asset} not found'}
                     res.status_code = 404
                     return res
 

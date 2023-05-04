@@ -8,11 +8,16 @@ from rest_framework.response import Response
 from .serializers import UpdateSerializer
 from .models import Asset, Token, Update
 from datetime import timedelta
+import mimetypes
 import json
 import os
 
 
 VALID_PLATFORMS = ['android', 'ios']
+
+
+# Add extra extension to MIME type mappings.
+mimetypes.add_type('font/ttf', '.ttf')
 
 
 class BearerAuthentication(TokenAuthentication):
@@ -42,8 +47,15 @@ class UploadAssetView(APIView):
             key=os.path.splitext(filename)[0],
             file=request.FILES[filename],
         )
-        asset.save()
 
+        if asset.content_type() == None:
+            emsg = (
+                'could not map MIME type from the file extension, please change'
+                'the source to add the correct mapping'
+            )
+            return Response({'error': emsg}, status=422)
+
+        asset.save()
         return Response({'id': asset.id}, status=201)
 
 

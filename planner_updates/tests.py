@@ -45,6 +45,20 @@ class UploadTests(APITransactionTestCase):
         self.assertEqual(res.status_code, 201)
         self.assertEqual(Asset.objects.all().count(), 1)
 
+    def test_post_with_unknown_extension_returns_422(self):
+        res = self.client.post(
+            '/ru_api/updates/v1/upload',
+            data={
+                'foo.penajo': SimpleUploadedFile(
+                    'foo.penajo',
+                    b'\x1bPENAJO\x02' + b'a' * 527,
+                    content_type='gabriel/penajo',
+                ),
+            },
+            HTTP_AUTHORIZATION=authentication_header()
+        )
+        self.assertEqual(res.status_code, 422)
+
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ManifestPostTests(APITransactionTestCase):

@@ -103,10 +103,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_ROOT = '/var/run/share/ru_api/static'
+STATIC_ROOT = '/var/run/share/static'
 STATIC_URL = 'ru_api/static/'
 
-MEDIA_ROOT = '/var/run/share/ru_api/assets'
+MEDIA_ROOT = '/var/run/share/assets'
 MEDIA_URL = 'ru_api/assets/'
 
 # Default primary key field type

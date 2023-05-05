@@ -90,12 +90,16 @@ class ManifestView(APIView):
 
     def get(self, request):
         res = Response()
-        res['Expo-Protocol-Version'] = 1
         res['Expo-Sfv-Version'] = 0
 
         protocol_version = request.headers.get('Expo-Protocol-Version')
         if protocol_version == None:
-            res.data = {'error': 'the protocol version header is missing'}
+            res['Expo-Protocol-Version'] = 0
+        elif protocol_version == '1':
+            res['Expo-Protocol-Version'] = 1
+        else:
+            res['Expo-Protocol-Version'] = 1
+            res.data = {'error': 'protocol version not supported'}
             res.status_code = 400
             return res
 
@@ -114,11 +118,6 @@ class ManifestView(APIView):
         channel = request.headers.get('Ufscar-Planner-Channel')
         if channel == None:
             res.daata = {'error': 'the channel name header is missing'}
-            res.status_code = 400
-            return res
-
-        if protocol_version != "1":
-            res.data = {'error': 'protocol version not supported'}
             res.status_code = 400
             return res
 

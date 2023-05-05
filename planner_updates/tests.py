@@ -298,23 +298,25 @@ class ManifestGetTests(APITransactionTestCase):
         )
         self.assertEqual(res.status_code, 400)
 
+    def test_missing_protocol_version_assumes_v0(self):
+        res = self.client.get(
+            '/ru_api/updates/v1/manifest',
+            **{
+                'HTTP_EXPO-PLATFORM': 'android',
+                # 'HTTP_EXPO-PROTOCOL-VERSION': '1',
+                'HTTP_EXPO-RUNTIME-VERSION': '0',
+                'HTTP_UFSCAR-PLANNER-CHANNEL': 'testing',
+            }
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Expo-Protocol-Version'], '0')
+
     def test_missing_header_returns_400(self):
         res = self.client.get(
             '/ru_api/updates/v1/manifest',
             **{
                 # 'HTTP_EXPO-PLATFORM': 'android',
                 'HTTP_EXPO-PROTOCOL-VERSION': '1',
-                'HTTP_EXPO-RUNTIME-VERSION': '0',
-                'HTTP_UFSCAR-PLANNER-CHANNEL': 'testing',
-            }
-        )
-        self.assertEqual(res.status_code, 400)
-
-        res = self.client.get(
-            '/ru_api/updates/v1/manifest',
-            **{
-                'HTTP_EXPO-PLATFORM': 'android',
-                # 'HTTP_EXPO-PROTOCOL-VERSION': '1',
                 'HTTP_EXPO-RUNTIME-VERSION': '0',
                 'HTTP_UFSCAR-PLANNER-CHANNEL': 'testing',
             }

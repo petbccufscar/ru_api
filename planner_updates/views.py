@@ -43,18 +43,17 @@ class UploadAssetView(APIView):
         filename = filenames[0]
         request.FILES[filename].ext = os.path.splitext(filename)[1]
 
+        if mimetypes.guess_type(filename)[0] == None:
+            emsg = (
+                'could not map MIME type from the file extension, please '
+                'change the source to add the correct mapping'
+            )
+            return Response({'error': emsg}, status=422)
+
         asset = Asset(
             key=os.path.splitext(filename)[0],
             file=request.FILES[filename],
         )
-
-        if asset.content_type() == None:
-            emsg = (
-                'could not map MIME type from the file extension, please change'
-                'the source to add the correct mapping'
-            )
-            return Response({'error': emsg}, status=422)
-
         asset.save()
         return Response({'id': asset.id}, status=201)
 

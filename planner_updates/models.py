@@ -52,8 +52,7 @@ class Asset(models.Model):
         return guess_type(self.file.path)[0]
 
     def url(self):
-        domain = settings.BASE_URL
-        return f'https://{domain}{self.file.url}'
+        return f'{settings.BASE_URL}{self.file.url}'
 
 
 class Update(models.Model):
@@ -81,3 +80,18 @@ class Update(models.Model):
         max_length=7,
         choices=[(IOS, IOS), (ANDROID, ANDROID)]
     )
+
+    def __str__(self):
+        version = None
+        try:
+            version = json.loads(self.extra_json)['expoClient']['version']
+        except Exception:
+            version = "?.?.?"
+        created_at = self.created_at.replace(microsecond=0, tzinfo=None)
+        return f'v{version} {created_at} {self.platform.title()}'
+
+
+class Signature(models.Model):
+    update = models.ForeignKey(Update, on_delete=models.CASCADE)
+    key_id = models.CharField(max_length=32)
+    signature = models.TextField()

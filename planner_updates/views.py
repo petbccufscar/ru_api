@@ -1,12 +1,13 @@
-from django.http import HttpResponse
 from django.utils import timezone
 from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
+from .renderer import CanonicalJSONRenderer
 from .serializers import UpdateSerializer
-from .models import Asset, Token, Update
+from .sfv import encode
+from .models import Asset, Token, Update, Signature
 from datetime import timedelta
 import mimetypes
 import json
@@ -87,6 +88,7 @@ def map_manifest(man):
 class ManifestView(APIView):
     authentication_classes = [BearerAuthentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
+    renderer_classes = [CanonicalJSONRenderer]
 
     def get(self, request):
         res = Response()
@@ -126,11 +128,6 @@ class ManifestView(APIView):
             res.status_code = 404
             return res
 
-        if 'Expo-Expect-Signature' in request.headers:
-            res.data = {'error': 'signatures are not supported yet'}
-            res.status_code = 422
-            return res
-
         try:
             latest_update = Update.objects.filter(
                 runtime_version=runtime_version,
@@ -139,6 +136,15 @@ class ManifestView(APIView):
             ).latest('created_at')
             res.data = map_manifest(UpdateSerializer(latest_update).data)
             res['Cache-Control'] = 'private, max-age=0'
+            try:
+                signature = Signature.objects.get(update=latest_update)
+                res['expo-signature'] = encode({
+                    'sig': [ signature.signature, {} ],
+                    'keyid': [ signature.key_id, {} ],
+                    'alg': [ 'rsa-v1_5-sha256', {} ],
+                })
+            except Signature.DoesNotExist:
+                pass
             return res
         except Update.DoesNotExist:
             del res['Content-Type']

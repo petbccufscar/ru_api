@@ -5,7 +5,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
-BASE_URL = 'petbcc.ufscar.br'
+BASE_URL = 'https://petbcc.ufscar.br'
 ALLOWED_HOSTS = ['petbcc.ufscar.br']
 
 # Application definition

@@ -1,12 +1,13 @@
-from django.http import HttpResponse
 from django.utils import timezone
 from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
+from .renderer import CanonicalJSONRenderer
 from .serializers import UpdateSerializer
-from .models import Asset, Token, Update
+from .sfv import encode
+from .models import Asset, Token, Update, Signature
 from datetime import timedelta
 import mimetypes
 import json
@@ -58,6 +59,58 @@ class UploadAssetView(APIView):
         return Response({'id': asset.id}, status=201)
 
 
+class AttachSignatureView(APIView):
+    authentication_classes = [BearerAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def post(self, request):
+        res = Response()
+
+        if not isinstance(request.data, dict):
+            res.data = {'error': 'invalid request body, expected an object'}
+            res.status_code = 400
+            return res
+
+        key_id = request.data.get('keyId')
+        if not isinstance(key_id, str):
+            res.data = {'error': 'invalid key id, expected a string'}
+            res.status_code = 400
+            return res
+        
+        if len(key_id) > 32:
+            res.data = {'error': 'key id is too long'}
+            res.status_code = 400
+            return res
+        
+        update_uuid = request.data.get('updateId')
+        if not isinstance(update_uuid, str):
+            res.data = {'error': 'invalid update id, expected a string'}
+            res.status_code = 400
+            return res
+        
+        signature = request.data.get('signature')
+        if not isinstance(signature, str):
+            res.data = {'error': 'invalid signature, expected a string'}
+            res.status_code = 400
+            return res
+        
+        with transaction.atomic():
+            update = None
+            try:
+                update = Update.objects.get(id=update_uuid)
+            except Update.DoesNotExist:
+                res.data = {'error': 'the update does not exist'}
+                res.status_code = 404
+                return res
+            Signature(
+                update=update,
+                key_id=key_id,
+                signature=signature,
+            ).save()
+            res.status_code = 201
+            return res
+
+
 def map_manifest(man):
     return {
         'id': man['id'],
@@ -87,6 +140,7 @@ def map_manifest(man):
 class ManifestView(APIView):
     authentication_classes = [BearerAuthentication]
     permission_classes = [IsAuthenticatedOrReadOnly]
+    renderer_classes = [CanonicalJSONRenderer]
 
     def get(self, request):
         res = Response()
@@ -126,11 +180,6 @@ class ManifestView(APIView):
             res.status_code = 404
             return res
 
-        if 'Expo-Expect-Signature' in request.headers:
-            res.data = {'error': 'signatures are not supported yet'}
-            res.status_code = 422
-            return res
-
         try:
             latest_update = Update.objects.filter(
                 runtime_version=runtime_version,
@@ -139,6 +188,15 @@ class ManifestView(APIView):
             ).latest('created_at')
             res.data = map_manifest(UpdateSerializer(latest_update).data)
             res['Cache-Control'] = 'private, max-age=0'
+            try:
+                signature = Signature.objects.get(update=latest_update)
+                res['expo-signature'] = encode({
+                    'sig': [ signature.signature, {} ],
+                    'keyid': [ signature.key_id, {} ],
+                    'alg': [ 'rsa-v1_5-sha256', {} ],
+                })
+            except Signature.DoesNotExist:
+                pass
             return res
         except Update.DoesNotExist:
             del res['Content-Type']

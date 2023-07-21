@@ -28,12 +28,16 @@ class LaunchAssetSerializer(serializers.ModelSerializer):
 
 class UpdateSerializer(serializers.ModelSerializer):
     launch_asset = LaunchAssetSerializer(many=False, read_only=True)
-    assets = AssetSerializer(many=True, read_only=True)
+    assets = serializers.SerializerMethodField()
 
     created_at = serializers.DateTimeField(
         format='%Y-%m-%dT%H:%M:%S.000Z',
         default_timezone=timezone.utc,
     )
+
+    def get_assets(self, instance):
+        objs = Asset.objects.filter(update=instance).all().order_by("id")
+        return AssetSerializer(objs, many=True, read_only=True).data
 
     class Meta:
         model = Update

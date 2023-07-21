@@ -8,7 +8,6 @@ def encode_bare_value(v):
 
 
 def encode(d):
-    print(d)
     items = []
     for key in d:
         item, params = d[key]

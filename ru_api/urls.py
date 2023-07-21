@@ -27,5 +27,6 @@ urlpatterns = [
     path('ru_api/menu/<str:campus>/', ru_views.menu_view),
     path('ru_api/index.html', ru_views.campus_view),
     path('ru_api/updates/v1/manifest', updates_views.ManifestView.as_view()),
-    path('ru_api/updates/v1/upload', updates_views.UploadAssetView.as_view())
+    path('ru_api/updates/v1/upload', updates_views.UploadAssetView.as_view()),
+    path('ru_api/updates/v1/sign', updates_views.AttachSignatureView.as_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

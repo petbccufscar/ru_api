@@ -59,6 +59,58 @@ class UploadAssetView(APIView):
         return Response({'id': asset.id}, status=201)
 
 
+class AttachSignatureView(APIView):
+    authentication_classes = [BearerAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def post(self, request):
+        res = Response()
+
+        if not isinstance(request.data, dict):
+            res.data = {'error': 'invalid request body, expected an object'}
+            res.status_code = 400
+            return res
+
+        key_id = request.data.get('keyId')
+        if not isinstance(key_id, str):
+            res.data = {'error': 'invalid key id, expected a string'}
+            res.status_code = 400
+            return res
+        
+        if len(key_id) > 32:
+            res.data = {'error': 'key id is too long'}
+            res.status_code = 400
+            return res
+        
+        update_uuid = request.data.get('updateId')
+        if not isinstance(update_uuid, str):
+            res.data = {'error': 'invalid update id, expected a string'}
+            res.status_code = 400
+            return res
+        
+        signature = request.data.get('signature')
+        if not isinstance(signature, str):
+            res.data = {'error': 'invalid signature, expected a string'}
+            res.status_code = 400
+            return res
+        
+        with transaction.atomic():
+            update = None
+            try:
+                update = Update.objects.get(id=update_uuid)
+            except Update.DoesNotExist:
+                res.data = {'error': 'the update does not exist'}
+                res.status_code = 404
+                return res
+            Signature(
+                update=update,
+                key_id=key_id,
+                signature=signature,
+            ).save()
+            res.status_code = 201
+            return res
+
+
 def map_manifest(man):
     return {
         'id': man['id'],

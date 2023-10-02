@@ -19,6 +19,7 @@ VALID_PLATFORMS = ['android', 'ios']
 
 # Add extra extension to MIME type mappings.
 mimetypes.add_type('font/ttf', '.ttf')
+mimetypes.add_type('application/javascript', '.hbc')
 
 
 class BearerAuthentication(TokenAuthentication):
